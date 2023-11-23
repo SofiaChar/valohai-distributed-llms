@@ -66,7 +66,7 @@
       - name: output-dir
         default: "bart-large-cnn"
       - name: batch-size
-        default: 1
+        default: 6
       - name: num-epochs
         default: 1
       - name: warmup-steps
