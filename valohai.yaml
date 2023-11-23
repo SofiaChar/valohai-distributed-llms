@@ -6,8 +6,6 @@
       - pip install valohai-utils
       - torchrun --nproc-per-node=4 train-torchrun.py {parameters}
     parameters:
-      - name: dataset-name
-        default: "samsum"
       - name: model-ckpt
         default: "facebook/bart-large-cnn"
       - name: output-dir
@@ -20,6 +18,11 @@
         default: 500
       - name: evaluation-steps
         default: 500
+    inputs:
+      - name: dataset
+        default:
+          - s3://dd-sample-bucket/llm-example/train.json
+          - s3://dd-sample-bucket/llm-example/val.json
 
 - step:
     name: train-accelerator
@@ -27,4 +30,51 @@
     environment: staging-aws-eu-west-1-p3-8xlarge
     command:
       - pip install accelerate evaluate absl-py rouge-score
-      - python -m accelerate.commands.launch --num_processes=4 train-accelerator.py
+      - python -m accelerate.commands.launch --num_processes=4 train-accelerator.py {parameters}
+    parameters:
+      - name: model-ckpt
+        default: "facebook/bart-large-cnn"
+      - name: output-dir
+        default: "bart-large-cnn"
+      - name: batch-size
+        default: 1
+      - name: num-epochs
+        default: 1
+      - name: warmup-steps
+        default: 500
+      - name: evaluation-steps
+        default: 500
+    inputs:
+      - name: dataset
+        default:
+          - s3://dd-sample-bucket/llm-example/train.json
+          - s3://dd-sample-bucket/llm-example/val.json
+
+- step:
+    name: train-task
+    image: sofiiavalohai/valohai-llms:v1.5
+    environment: staging-aws-eu-west-1-p3-8xlarge
+    command:
+      - pip install accelerate evaluate absl-py rouge-score
+      - python train-task.py {parameters}
+    environment-variables:
+      - name: VH_DOCKER_NETWORK
+        default: host
+    parameters:
+      - name: model-ckpt
+        default: "facebook/bart-large-cnn"
+      - name: output-dir
+        default: "bart-large-cnn"
+      - name: batch-size
+        default: 1
+      - name: num-epochs
+        default: 1
+      - name: warmup-steps
+        default: 500
+      - name: evaluation-steps
+        default: 500
+    inputs:
+      - name: dataset
+        default:
+          - s3://dd-sample-bucket/llm-example/train.json
+          - s3://dd-sample-bucket/llm-example/val.json

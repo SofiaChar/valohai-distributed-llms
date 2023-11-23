@@ -1,18 +1,23 @@
 import sys
 import argparse
 import datetime
+from torch.optim import AdamW
+from torch.utils.data import DataLoader
 from datasets import load_dataset, load_metric
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from tqdm import tqdm
 import torch
 from transformers import DataCollatorForSeq2Seq, TrainingArguments, Trainer, TrainerCallback
 import os
+from transformers import get_scheduler
 import nltk
 import valohai
 import json
-from subprocess import call
+
+import helpers
 
 nltk.download("punkt")
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
 
 
@@ -30,6 +35,7 @@ class ModelTrainer:
         self.pretrained_model = AutoModelForSeq2SeqLM.from_pretrained(self.model_ckpt).to(self.device)
 
     def print_gpu_report(self):
+        from subprocess import call
         print('torch.cuda.device_count() ', torch.cuda.device_count())
         print('self.device ', self.device)
         print('__Python VERSION:', sys.version)
@@ -102,16 +108,9 @@ class ModelTrainer:
                           eval_dataset=eval_dataset, callbacks=[PrinterCallback])
 
         trainer.train()
-        self.save_metadata(output_dir)
+        helpers.save_valohai_metadata(self.pretrained_model, output_dir)
 
-    def save_metadata(self, output_dir):
-        self.pretrained_model.save_pretrained(output_dir)
-        metadata_path = os.path.join(output_dir, "pytorch_model.bin.metadata.json")
-        metadata = {
-            "valohai.alias": f'dev-{datetime.date.today()}-model',
-        }
-        with open(metadata_path, "w") as outfile:
-            json.dump(metadata, outfile)
+
 
 
 class PrinterCallback(TrainerCallback):
@@ -122,8 +121,14 @@ class PrinterCallback(TrainerCallback):
 
 def run(args):
     output_dir = valohai.outputs().path(args.output_dir)
-    dataset_samsum = load_dataset(args.dataset_name)
-
+    data_path = os.path.dirname(valohai.inputs('dataset').path())
+    dataset_samsum = load_dataset(
+        'json',
+        data_files={
+            'train': os.path.join(data_path, 'train.json'),
+            'validation': os.path.join(data_path, 'val.json'),
+        },
+    )
     train_dataset = dataset_samsum["train"]
     eval_dataset = dataset_samsum["validation"]
 
@@ -138,7 +143,6 @@ def run(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Train a Seq2Seq model")
-    parser.add_argument("--dataset-name", type=str, help="Hugging face dataset name")
     parser.add_argument("--model-ckpt", type=str, help="Pretrained model checkpoint")
     parser.add_argument("--output-dir", type=str, help="Output directory for the trained model")
     parser.add_argument("--batch-size", type=int, help="Batch size")
