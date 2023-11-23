@@ -21,8 +21,8 @@
     inputs:
       - name: dataset
         default:
-          - s3://dd-sample-bucket/llm-example/train.json
-          - s3://dd-sample-bucket/llm-example/val.json
+        - s3://dd-sample-bucket/llm-example/train.json
+        - s3://dd-sample-bucket/llm-example/val.json
 
 - step:
     name: train-accelerator
@@ -47,8 +47,8 @@
     inputs:
       - name: dataset
         default:
-          - s3://dd-sample-bucket/llm-example/train.json
-          - s3://dd-sample-bucket/llm-example/val.json
+        - s3://dd-sample-bucket/llm-example/train.json
+        - s3://dd-sample-bucket/llm-example/val.json
 
 - step:
     name: train-task
@@ -76,5 +76,5 @@
     inputs:
       - name: dataset
         default:
-          - s3://dd-sample-bucket/llm-example/train.json
-          - s3://dd-sample-bucket/llm-example/val.json
+        - s3://dd-sample-bucket/llm-example/train.json
+        - s3://dd-sample-bucket/llm-example/val.json
