@@ -1,23 +1,16 @@
 import sys
 import argparse
-import datetime
-from torch.optim import AdamW
-from torch.utils.data import DataLoader
 from datasets import load_dataset, load_metric
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from tqdm import tqdm
 import torch
 from transformers import DataCollatorForSeq2Seq, TrainingArguments, Trainer, TrainerCallback
 import os
-from transformers import get_scheduler
-import nltk
 import valohai
 import json
 
 import helpers
 
-nltk.download("punkt")
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
 
 
