@@ -171,7 +171,7 @@ class ModelTrainer:
         train_dataset_samsum_pt = train_dataset.map(self.convert_examples_to_features, batched=True,
                                                    remove_columns=column_names)
 
-        train_dataset_samsum_pt = train_dataset_samsum_pt.shard(num_shards=10, index=0) # Cut part of the train dataset to speed up testing
+        # train_dataset_samsum_pt = train_dataset_samsum_pt.shard(num_shards=10, index=0) # Cut part of the train dataset to speed up testing
         eval_dataset_samsum_pt = eval_dataset.map(self.convert_examples_to_features, batched=True,
                                                   remove_columns=column_names)
 
