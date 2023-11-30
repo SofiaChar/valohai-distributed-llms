@@ -78,7 +78,7 @@
         default:
         - s3://dd-sample-bucket/llm-example/train.json
         - s3://dd-sample-bucket/llm-example/val.json
-        -
+
 - task:
     step: train-task
     name: task-distributed
