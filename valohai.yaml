@@ -1,7 +1,7 @@
 - step:
     name: train-torchrun
     image: sofiiavalohai/valohai-llms:v1.5
-    environment: staging-aws-eu-west-1-p3-8xlarge
+    environment: aws-eu-west-1-p3-8xlarge
     command:
       - pip install valohai-utils
       - torchrun --nproc-per-node=4 train-torchrun.py {parameters}
@@ -27,7 +27,7 @@
 - step:
     name: train-accelerator
     image: sofiiavalohai/valohai-llms:v1.5
-    environment: staging-aws-eu-west-1-p3-8xlarge
+    environment: aws-eu-west-1-p3-8xlarge
     command:
       - pip install accelerate evaluate absl-py rouge-score
       - python -m accelerate.commands.launch --num_processes=4 train-accelerator.py {parameters}
@@ -53,7 +53,7 @@
 - step:
     name: train-task
     image: sofiiavalohai/valohai-llms:v1.5
-    environment: staging-aws-eu-west-1-p3-8xlarge
+    environment: aws-eu-west-1-p3-2xlarge
     command:
       - pip install accelerate evaluate absl-py rouge-score
       - python train-task.py {parameters}
