@@ -53,7 +53,7 @@
 - step:
     name: train-task
     image: sofiiavalohai/valohai-llms:v1.5
-    environment: aws-eu-west-1-p3-2xlarge
+    environment: sharkdemo-aws-eu-central-1-g4dn-xlarge
     command:
       - pip install accelerate evaluate absl-py rouge-score
       - python train-task.py {parameters}
