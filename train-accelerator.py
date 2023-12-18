@@ -38,7 +38,6 @@ class ModelTrainer:
         self.logger = logging.getLogger(__name__)
         self.set_logs()
 
-
     def set_logs(self):
         self.logger.info(self.accelerator.state)
         self.logger.setLevel(logging.INFO if self.accelerator.is_local_main_process else logging.ERROR)
@@ -93,10 +92,11 @@ class ModelTrainer:
         return score
 
     def convert_examples_to_features(self, example_batch):
-        input_encodings = self.tokenizer(example_batch['dialogue'], padding="max_length", truncation=True, max_length=1024)
+        input_encodings = self.tokenizer(example_batch['dialogue'], padding="max_length", truncation=True,
+                                         max_length=1024)
 
-        # with self.tokenizer.as_target_tokenizer():
-        target_encodings = self.tokenizer(text_target=example_batch['summary'], padding="max_length", truncation=True, max_length=128)
+        target_encodings = self.tokenizer(text_target=example_batch['summary'], padding="max_length", truncation=True,
+                                          max_length=128)
 
         return {
             'input_ids': input_encodings['input_ids'],
@@ -104,13 +104,26 @@ class ModelTrainer:
             'labels': target_encodings['input_ids']
         }
 
+    def synchronize_and_aggregate_metrics(self, metrics):
+        torch_metrics = {key: torch.tensor(metrics[key]).to(self.device) for key in metrics.keys()}
+        metrics_list = self.accelerator.gather(torch_metrics)
+        self.accelerator.wait_for_everyone()
+
+        return {metric: torch.mean(metrics_list[metric]).item() for metric in metrics_list}
+
     def train(self, output_dir, train_dataset, eval_dataset):
         column_names = train_dataset.column_names
-        train_dataset_samsum_pt = train_dataset.map(self.convert_examples_to_features, batched=True, remove_columns=column_names)
-        eval_dataset_samsum_pt = eval_dataset.map(self.convert_examples_to_features, batched=True, remove_columns=column_names)
+        train_dataset_samsum_pt = train_dataset.map(self.convert_examples_to_features, batched=True,
+                                                    remove_columns=column_names)
+        eval_dataset_samsum_pt = eval_dataset.map(self.convert_examples_to_features, batched=True,
+                                                  remove_columns=column_names)
 
         seq2seq_data_collator = DataCollatorForSeq2Seq(self.tokenizer, model=self.pretrained_model,
                                                        pad_to_multiple_of=8 if self.accelerator.mixed_precision == 'fp16' else None)
+        # train_dataset_samsum_pt = train_dataset_samsum_pt.shard(num_shards=10,
+        #                                                         index=0)  # Cut part of the train dataset to speed up testing
+        # eval_dataset_samsum_pt = eval_dataset_samsum_pt.shard(num_shards=10,
+        #                                                       index=0)  # Cut part of the train dataset to speed up testing
 
         train_dataloader = DataLoader(
             train_dataset_samsum_pt, shuffle=True, collate_fn=seq2seq_data_collator, batch_size=1
@@ -170,7 +183,7 @@ class ModelTrainer:
                 progress_bar.update(1)
                 completed_steps += 1
 
-                if completed_steps%300==0:
+                if completed_steps % 300 == 0:
                     logs = {'loss': loss.item(), 'step': completed_steps}
                     self.dump_valohai_metadata(logs)
 
@@ -204,21 +217,16 @@ class ModelTrainer:
                     decoded_preds = self.tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
                     decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
 
-                    # decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
-
                     metric.add_batch(predictions=decoded_preds, references=decoded_labels)
-            result = metric.compute(use_stemmer=True)
 
-            # Extract a few results from ROUGE
-            result = {key: value * 100 for key, value in result.items()}
+            metrics = metric.compute(use_stemmer=True)
 
-            result = {k: round(v, 4) for k, v in result.items()}
+            # Synchronize and calculate mean across GPUs
+            avg_metrics = self.synchronize_and_aggregate_metrics(metrics)
 
-            val_logs = result.copy()
-            val_logs['epoch']= epoch
-            self.dump_valohai_metadata(val_logs)
-
-            self.logger.info(result)
+            self.dump_valohai_metadata(avg_metrics)
+            self.logger.info("Metrics aggregated across all GPUs: ")
+            self.logger.info(avg_metrics)
 
         if output_dir is not None:
             self.accelerator.wait_for_everyone()

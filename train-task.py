@@ -161,6 +161,31 @@ class ModelTrainer:
         print('batch_size', bsz)
         return set, bsz
 
+    def synchronize_and_aggregate_metrics(self, metrics):
+        if metrics is None:
+            return None
+        group = dist.group.WORLD
+        group_size = dist.get_world_size(group)
+
+        tensor_dict = {key: torch.zeros_like(torch.tensor(metrics[key])) for key in metrics.keys()}
+        metrics = {key: torch.tensor(metrics[key]).to(self.device) for key in metrics.keys()}
+
+        for key in metrics.keys():
+            # Create a tensor list with the same shape as the current key's tensor
+            tensor_list = [torch.zeros_like(torch.tensor(metrics[key])).to(self.device) for _ in range(group_size)]
+            # Perform the gather operation for the current key
+            dist.all_gather(tensor_list, metrics[key])
+            # Update the dictionary with the gathered tensors
+            tensor_dict[key] = tensor_list
+
+        mean_dict = {key: sum(values) / len(values) if key != 'epoch' else int(values[0]) for key, values in
+                     tensor_dict.items()}
+        # Convert tensors to standard Python types
+        mean_values_converted = {key: value.item() if isinstance(value, torch.Tensor) else value for key, value in
+                                 mean_dict.items()}
+
+        return mean_values_converted
+
     def train(self, output_dir, train_dataset, eval_dataset, logger, device):
         self.device = device
         print('self.device ', self.device)
@@ -171,9 +196,11 @@ class ModelTrainer:
         train_dataset_samsum_pt = train_dataset.map(self.convert_examples_to_features, batched=True,
                                                    remove_columns=column_names)
 
-        # train_dataset_samsum_pt = train_dataset_samsum_pt.shard(num_shards=10, index=0) # Cut part of the train dataset to speed up testing
         eval_dataset_samsum_pt = eval_dataset.map(self.convert_examples_to_features, batched=True,
                                                   remove_columns=column_names)
+
+        # train_dataset_samsum_pt = train_dataset_samsum_pt.shard(num_shards=50, index=0) # Cut part of the train dataset to speed up testing
+        # eval_dataset_samsum_pt = eval_dataset_samsum_pt.shard(num_shards=50, index=0) # Cut part of the train dataset to speed up testing
 
         seq2seq_data_collator = DataCollatorForSeq2Seq(self.tokenizer, model=model,
                                                        pad_to_multiple_of=8)
@@ -234,7 +261,7 @@ class ModelTrainer:
                 progress_bar.update(1)
                 completed_steps += 1
 
-                if completed_steps % 300 == 0:
+                if completed_steps % 100 == 0:
                     logs = {'loss': loss.item(), 'step': completed_steps}
                     self.dump_valohai_metadata(logs)
 
@@ -280,7 +307,10 @@ class ModelTrainer:
 
             val_logs = result.copy()
             val_logs['epoch'] = epoch
-            self.dump_valohai_metadata(val_logs)
+
+            avg_val_logs = self.synchronize_and_aggregate_metrics(val_logs)
+            print("Metrics aggregated across all machines: ")
+            self.dump_valohai_metadata(avg_val_logs)
 
             self.logger.info(result)
 
