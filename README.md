@@ -42,7 +42,8 @@ We employ the Accelerate library to facilitate distributed training. The `train-
 * Ideal for custom training approaches.
 
 
-### 3. Distributed Training Across Multiple Machines (Under Development)
+### 3. Distributed Training Across Multiple Machines
+_Note: you need to run `train-task` as Valohai Task NOT Execution._
 
 The third approach, currently under development within this repository, tackles distributed training across multiple machines simultaneously. To achieve this, we employ Valohai's `valohai.distributed`, along with `torch.distributed` and `torch.multiprocessing` to establish communication between multiple machines during the training process. While still in development, this approach aims to provide a robust solution for training large language models across a distributed infrastructure.
 
@@ -131,6 +132,20 @@ For example, to run the _train-torchrun_ step, use the command:
 vh execution run train-torchrun --adhoc
 ```
 </details>
+
+
+### **Running Tasks:**
+
+Using UI
+
+1. Go to the Tasks tab in your project.
+2. Create a new task by selecting the predefined step `train-task`.
+3. Choose one of the following options:
+   - Navigate to Task type, and opt for Distributed. Adjust the execution count.
+   - Utilize the blueprint by clicking "Select Task blueprint" in the upper right corner.
+4. Customize the task parameters if needed.
+5. Start the task to run.
+
 
 ## <div align="center">Contact</div>
 For bug reports and feature requests please visit GitHub Issues.
