@@ -206,7 +206,7 @@ class ModelTrainer:
                                                        pad_to_multiple_of=8)
 
         train_dataloader, batch_size = self.partition_dataset(train_dataset_samsum_pt, seq2seq_data_collator)
-        eval_dataloader = DataLoader(eval_dataset_samsum_pt, collate_fn=seq2seq_data_collator, batch_size=1)
+        eval_dataloader = DataLoader(eval_dataset_samsum_pt, collate_fn=seq2seq_data_collator, batch_size=batch_size)
 
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
