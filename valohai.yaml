@@ -21,8 +21,8 @@
     inputs:
       - name: dataset
         default:
-        - s3://dd-sample-bucket/llm-example/train.json
-        - s3://dd-sample-bucket/llm-example/val.json
+        - https://valohai-demo-library-data.s3.eu-west-1.amazonaws.com/distributed-llms/train.json
+        - https://valohai-demo-library-data.s3.eu-west-1.amazonaws.com/distributed-llms/val.json
 
 - step:
     name: train-accelerator
@@ -47,8 +47,8 @@
     inputs:
       - name: dataset
         default:
-        - s3://dd-sample-bucket/llm-example/train.json
-        - s3://dd-sample-bucket/llm-example/val.json
+        - https://valohai-demo-library-data.s3.eu-west-1.amazonaws.com/distributed-llms/train.json
+        - https://valohai-demo-library-data.s3.eu-west-1.amazonaws.com/distributed-llms/val.json
 
 - step:
     name: train-task
@@ -76,8 +76,8 @@
     inputs:
       - name: dataset
         default:
-        - s3://dd-sample-bucket/llm-example/train.json
-        - s3://dd-sample-bucket/llm-example/val.json
+        - https://valohai-demo-library-data.s3.eu-west-1.amazonaws.com/distributed-llms/train.json
+        - https://valohai-demo-library-data.s3.eu-west-1.amazonaws.com/distributed-llms/val.json
 
 - task:
     step: train-task
